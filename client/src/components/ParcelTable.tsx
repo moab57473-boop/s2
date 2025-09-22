@@ -20,8 +20,8 @@ export default function ParcelTable() {
 
   const { data: parcels = [], isLoading } = useQuery<any[]>({
     queryKey: ["/api/parcels", { 
-      status: statusFilter || undefined,
-      department: departmentFilter || undefined,
+      status: statusFilter && statusFilter !== 'all' ? statusFilter : undefined,
+      department: departmentFilter && departmentFilter !== 'all' ? departmentFilter : undefined,
       search: searchQuery || undefined
     }],
   });
@@ -146,7 +146,7 @@ export default function ParcelTable() {
                 <SelectValue placeholder="All Status" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Status</SelectItem>
+                <SelectItem value="all">All Status</SelectItem>
                 <SelectItem value="pending">Pending</SelectItem>
                 <SelectItem value="processing">Processing</SelectItem>
                 <SelectItem value="completed">Completed</SelectItem>
@@ -160,7 +160,7 @@ export default function ParcelTable() {
                 <SelectValue placeholder="All Departments" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Departments</SelectItem>
+                <SelectItem value="all">All Departments</SelectItem>
                 <SelectItem value="mail">Mail</SelectItem>
                 <SelectItem value="regular">Regular</SelectItem>
                 <SelectItem value="heavy">Heavy</SelectItem>
