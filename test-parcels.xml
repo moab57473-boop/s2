@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Container xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <Parcels>
+    <Parcel>
+      <ID>PCL-001</ID>
+      <Weight>0.5</Weight>
+      <Value>25.00</Value>
+      <Recipient>
+        <Name>John Smith</Name>
+        <Address>
+          <Street>Mainstreet</Street>
+          <HouseNumber>123</HouseNumber>
+          <PostalCode>1234AB</PostalCode>
+          <City>Amsterdam</City>
+        </Address>
+      </Recipient>
+    </Parcel>
+    <Parcel>
+      <ID>PCL-002</ID>
+      <Weight>5.2</Weight>
+      <Value>150.00</Value>
+      <Recipient>
+        <Name>Jane Doe</Name>
+        <Address>
+          <Street>Parkweg</Street>
+          <HouseNumber>45</HouseNumber>
+          <PostalCode>5678CD</PostalCode>
+          <City>Rotterdam</City>
+        </Address>
+      </Recipient>
+    </Parcel>
+    <Parcel>
+      <ID>PCL-003</ID>
+      <Weight>12.8</Weight>
+      <Value>1200.00</Value>
+      <Recipient>
+        <Name>Alice Johnson</Name>
+        <Address>
+          <Street>Keizersgracht</Street>
+          <HouseNumber>789</HouseNumber>
+          <PostalCode>9012EF</PostalCode>
+          <City>Amsterdam</City>
+        </Address>
+      </Recipient>
+    </Parcel>
+  </Parcels>
+</Container>

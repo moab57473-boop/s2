@@ -1,5 +1,6 @@
 import { type Parcel, type InsertParcel, type BusinessRules, type InsertBusinessRules, type Department, type InsertDepartment } from "@shared/schema";
 import { randomUUID } from "crypto";
+import { MongoStorage } from './storage/MongoStorage';
 
 export interface IStorage {
   // Parcel operations
@@ -226,6 +227,22 @@ export class MemStorage implements IStorage {
   async deleteDepartment(id: string): Promise<boolean> {
     return this.departments.delete(id);
   }
+
+  async clearAllParcels(): Promise<void> {
+    this.parcels.clear();
+  }
+
+  async resetToDefaults(): Promise<void> {
+    // Clear all data
+    this.parcels.clear();
+    this.businessRules.clear();
+    this.departments.clear();
+    
+    // Reinitialize default data
+    this.initializeDefaultDepartments();
+    this.initializeDefaultBusinessRules();
+  }
 }
 
-export const storage = new MemStorage();
+// Use MongoDB storage instead of in-memory storage
+export const storage = new MongoStorage();

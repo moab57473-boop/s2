@@ -1,65 +1,97 @@
-import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, decimal, timestamp, boolean, json } from "drizzle-orm/pg-core";
-import { createInsertSchema } from "drizzle-zod";
+import { Document, WithId } from 'mongodb';
 import { z } from "zod";
 
-export const parcels = pgTable("parcels", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  parcelId: text("parcel_id").notNull().unique(),
-  weight: decimal("weight", { precision: 10, scale: 2 }).notNull(),
-  value: decimal("value", { precision: 10, scale: 2 }).notNull(),
-  department: text("department").notNull(),
-  status: text("status").notNull().default("pending"),
-  requiresInsurance: boolean("requires_insurance").notNull().default(false),
-  insuranceApproved: boolean("insurance_approved").notNull().default(false),
-  processingTime: timestamp("processing_time").notNull().defaultNow(),
-  errorMessage: text("error_message"),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+export interface ParcelDocument extends Document {
+  id: string;
+  parcelId: string;
+  weight: number;
+  value: number;
+  department: string;
+  status: string;
+  requiresInsurance: boolean;
+  insuranceApproved: boolean;
+  processingTime: Date;
+  errorMessage: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface BusinessRulesDocument extends Document {
+  id: string;
+  name: string;
+  rules: unknown;
+  isActive: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface DepartmentDocument extends Document {
+  id: string;
+  name: string;
+  description: string | null;
+  color: string;
+  icon: string;
+  isCustom: boolean;
+  createdAt: Date;
+};
+
+export const parcelSchema = z.object({
+  id: z.string(),
+  parcelId: z.string(),
+  weight: z.number(),
+  value: z.number(),
+  department: z.string(),
+  status: z.string().default("pending"),
+  requiresInsurance: z.boolean().default(false),
+  insuranceApproved: z.boolean().default(false),
+  processingTime: z.date().default(() => new Date()),
+  errorMessage: z.string().nullable(),
+  createdAt: z.date().default(() => new Date()),
+  updatedAt: z.date().default(() => new Date()),
 });
 
-export const businessRules = pgTable("business_rules", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  name: text("name").notNull().unique(),
-  rules: json("rules").notNull(),
-  isActive: boolean("is_active").notNull().default(true),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+export const businessRulesSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  rules: z.unknown(),
+  isActive: z.boolean().default(true),
+  createdAt: z.date().default(() => new Date()),
+  updatedAt: z.date().default(() => new Date()),
 });
 
-export const departments = pgTable("departments", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  name: text("name").notNull().unique(),
-  description: text("description"),
-  color: text("color").notNull(),
-  icon: text("icon").notNull(),
-  isCustom: boolean("is_custom").notNull().default(false),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
+export const departmentSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  description: z.string().nullable(),
+  color: z.string(),
+  icon: z.string(),
+  isCustom: z.boolean().default(false),
+  createdAt: z.date().default(() => new Date()),
 });
 
-export const insertParcelSchema = createInsertSchema(parcels).omit({
+export const insertParcelSchema = parcelSchema.omit({
   id: true,
   createdAt: true,
   updatedAt: true,
 });
 
-export const insertBusinessRulesSchema = createInsertSchema(businessRules).omit({
+export const insertBusinessRulesSchema = businessRulesSchema.omit({
   id: true,
   createdAt: true,
   updatedAt: true,
 });
 
-export const insertDepartmentSchema = createInsertSchema(departments).omit({
+export const insertDepartmentSchema = departmentSchema.omit({
   id: true,
   createdAt: true,
 });
 
 export type InsertParcel = z.infer<typeof insertParcelSchema>;
-export type Parcel = typeof parcels.$inferSelect;
+export type Parcel = z.infer<typeof parcelSchema>;
 export type InsertBusinessRules = z.infer<typeof insertBusinessRulesSchema>;
-export type BusinessRules = typeof businessRules.$inferSelect;
+export type BusinessRules = z.infer<typeof businessRulesSchema>;
 export type InsertDepartment = z.infer<typeof insertDepartmentSchema>;
-export type Department = typeof departments.$inferSelect;
+export type Department = z.infer<typeof departmentSchema>;
 
 export const ParcelStatus = z.enum([
   "pending",

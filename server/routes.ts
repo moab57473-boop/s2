@@ -6,8 +6,22 @@ import { businessRulesEngine } from "./services/businessRules";
 import { insertParcelSchema, insertBusinessRulesSchema, insertDepartmentSchema } from "@shared/schema";
 import { z } from "zod";
 import multer from "multer";
+import type { Request, Response } from "./types";
+import type { ZodError } from "zod";
 
-const upload = multer({ dest: 'uploads/' });
+const upload = multer({
+  dest: 'uploads/',
+  fileFilter: (_req, file, cb) => {
+    // Accept both .xml files and text/xml MIME type
+    if (file.originalname.toLowerCase().endsWith('.xml') ||
+        file.mimetype === 'text/xml' ||
+        file.mimetype === 'application/xml') {
+      cb(null, true);
+    } else {
+      cb(new Error('Only XML files are allowed'));
+    }
+  }
+});
 
 export async function registerRoutes(app: Express): Promise<Server> {
   
@@ -62,7 +76,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (error instanceof z.ZodError) {
         return res.status(400).json({ message: "Invalid parcel data", errors: error.errors });
       }
-      res.status(500).json({ message: error.message });
+      res.status(500).json({ 
+        message: error instanceof Error ? error.message : "An unexpected error occurred" 
+      });
     }
   });
 
@@ -87,25 +103,79 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const fs = await import('fs/promises');
-      const xmlContent = await fs.readFile(req.file.path, 'utf-8');
+      let xmlContent: string;
       
-      // Clean up uploaded file
-      await fs.unlink(req.file.path);
-
-      const parsedParcels = await xmlParser.parseXML(xmlContent);
-      const processedParcels = [];
-
-      for (const parcelData of parsedParcels) {
-        const parcel = await businessRulesEngine.processParcel(parcelData);
-        processedParcels.push(parcel);
+      try {
+        xmlContent = await fs.readFile(req.file.path, 'utf8');
+        // Remove BOM if present
+        xmlContent = xmlContent.replace(/^\uFEFF/, '');
+        // Log the entire XML content for debugging
+        console.log('XML Content:', xmlContent);
+        // Check if the content starts with <?xml
+        if (!xmlContent.trim().startsWith('<?xml')) {
+          return res.status(400).json({ message: "Invalid XML file: Missing XML declaration" });
+        }
+      } catch (error) {
+        console.error('Error reading file:', error);
+        return res.status(400).json({ message: "Error reading the uploaded file" });
+      }
+      
+      let parsedParcels;
+      try {
+        console.log('Attempting to parse XML content:', xmlContent);
+        parsedParcels = await xmlParser.parseXML(xmlContent);
+        console.log('Parsed parcels:', JSON.stringify(parsedParcels, null, 2));
+        console.log('Parsed parcels count:', parsedParcels.length);
+      } catch (error) {
+        console.error('XML parsing error:', error);
+        return res.status(400).json({ 
+          message: `Failed to parse XML file: ${error instanceof Error ? error.message : 'Unknown error'}`
+        });
       }
 
+      // Clean up uploaded file
+      try {
+        await fs.unlink(req.file.path);
+      } catch (error) {
+        console.error('Failed to cleanup uploaded file:', req.file.path, error);
+      }
+
+      if (!parsedParcels || parsedParcels.length === 0) {
+        return res.status(400).json({ message: "No valid parcels found in the XML file" });
+      }
+
+      const processedParcels = [];
+      const errors = [];
+
+      console.log('Starting parcel processing...');
+      for (const parsedParcel of parsedParcels) {
+        try {
+          console.log('Processing parcel:', JSON.stringify(parsedParcel, null, 2));
+          const insertParcel = xmlParser.convertToInsertParcel(parsedParcel);
+          console.log('Converted to insert format:', JSON.stringify(insertParcel, null, 2));
+          const parcel = await businessRulesEngine.processParcel(insertParcel);
+          console.log('Successfully processed parcel:', JSON.stringify(parcel, null, 2));
+          processedParcels.push(parcel);
+        } catch (error) {
+          console.error('Error processing parcel:', parsedParcel.parcelId, error);
+          errors.push({
+            parcelId: parsedParcel.parcelId,
+            error: error instanceof Error ? error.message : 'Unknown error'
+          });
+        }
+      }
+      console.log('Finished processing parcels. Success:', processedParcels.length, 'Errors:', errors.length);
+
       res.json({
-        message: `Successfully processed ${processedParcels.length} parcels`,
-        parcels: processedParcels
+        message: `Processed ${processedParcels.length} parcels${errors.length > 0 ? ` (${errors.length} errors)` : ''}`,
+        parcels: processedParcels,
+        errors: errors.length > 0 ? errors : undefined
       });
     } catch (error) {
-      res.status(400).json({ message: error.message });
+      console.error('Error in upload-xml endpoint:', error);
+      res.status(500).json({ 
+        message: error instanceof Error ? error.message : "An unexpected error occurred while processing the file" 
+      });
     }
   });
 
@@ -132,6 +202,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(parcel);
     } catch (error) {
       res.status(500).json({ message: error instanceof Error ? error.message : 'Unknown error' });
+    }
+  });
+
+  // Reset data
+  app.post("/api/reset", async (_req, res) => {
+    try {
+      await storage.resetToDefaults();
+      res.json({ message: "All data has been reset to defaults" });
+    } catch (error) {
+      res.status(500).json({ 
+        message: error instanceof Error ? error.message : "An unexpected error occurred" 
+      });
     }
   });
 
@@ -216,7 +298,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (error instanceof z.ZodError) {
         return res.status(400).json({ message: "Invalid department data", errors: error.errors });
       }
-      res.status(500).json({ message: error.message });
+      res.status(500).json({ 
+        message: error instanceof Error ? error.message : "An unexpected error occurred" 
+      });
     }
   });
 

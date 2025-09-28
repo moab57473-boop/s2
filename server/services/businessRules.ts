@@ -79,21 +79,40 @@ export class BusinessRulesEngine {
 
   async processParcel(parcelData: {
     parcelId: string;
-    weight: number;
-    value: number;
+    weight: number | string;
+    value: number | string;
   }): Promise<Parcel> {
     try {
-      const routing = await this.determineParcelRouting(parcelData);
+      // Convert weight and value to numbers
+      const weight = typeof parcelData.weight === 'string' ? 
+        parseFloat(parcelData.weight) : parcelData.weight;
+      const value = typeof parcelData.value === 'string' ? 
+        parseFloat(parcelData.value) : parcelData.value;
+
+      if (isNaN(weight)) {
+        throw new Error(`Invalid weight value for parcel ${parcelData.parcelId}`);
+      }
+
+      if (isNaN(value)) {
+        throw new Error(`Invalid value amount for parcel ${parcelData.parcelId}`);
+      }
+
+      const routing = await this.determineParcelRouting({
+        ...parcelData,
+        weight,
+        value
+      });
       
       const insertParcel: InsertParcel = {
         parcelId: parcelData.parcelId,
-        weight: parcelData.weight.toString(),
-        value: parcelData.value.toString(),
+        weight: weight.toString(),
+        value: value.toString(),
         department: routing.department,
         status: routing.status,
         requiresInsurance: routing.requiresInsurance,
         insuranceApproved: false,
-        processingTime: new Date()
+        processingTime: new Date(),
+        errorMessage: null
       };
 
       return await storage.createParcel(insertParcel);

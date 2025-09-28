@@ -1,0 +1,9 @@
+{
+  "name": "ta-server-scripts",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "init-db": "cross-env TS_NODE_PROJECT=./tsconfig.json ts-node --esm initDb.ts",
+    "test-db": "cross-env TS_NODE_PROJECT=./tsconfig.json ts-node --esm testDb.ts"
+  }
+}

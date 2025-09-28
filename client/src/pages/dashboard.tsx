@@ -1,3 +1,4 @@
+import * as React from "react";
 import Layout from "@/components/Layout";
 import MetricsCards from "@/components/MetricsCards";
 import DepartmentOverview from "@/components/DepartmentOverview";
@@ -19,14 +20,52 @@ export default function Dashboard() {
 
   const { data: metrics, isLoading: metricsLoading } = useQuery({
     queryKey: ["/api/dashboard/metrics"],
+    refetchOnMount: true,
+    staleTime: 0,
+    gcTime: 0
   });
 
   const refreshMutation = useMutation({
     mutationFn: async () => {
-      // Refresh all data by invalidating queries
-      await queryClient.invalidateQueries({ queryKey: ["/api/dashboard/metrics"] });
-      await queryClient.invalidateQueries({ queryKey: ["/api/parcels"] });
-      return true;
+      // Reset backend data
+      const response = await fetch("/api/reset", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include"
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to reset data');
+      }
+      
+      // Reset file upload state
+      setUploadFile(null);
+      
+      // First invalidate all queries
+      await queryClient.invalidateQueries();
+      
+      // Then force immediate refetch of specific queries
+      await Promise.all([
+        queryClient.refetchQueries({ queryKey: ["/api/dashboard/metrics"], exact: true }),
+        queryClient.refetchQueries({ queryKey: ["/api/parcels"], exact: true }),
+        queryClient.refetchQueries({ queryKey: ["/api/business-rules"], exact: true })
+      ]);
+    },
+    onSuccess: () => {
+      // Force a refetch of the metrics query specifically
+      queryClient.refetchQueries({ queryKey: ["/api/dashboard/metrics"], exact: true });
+      
+      toast({
+        title: "Success",
+        description: "All data has been refreshed",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Refresh Error",
+        description: error.message,
+        variant: "destructive",
+      });
     }
   });
 
@@ -49,15 +88,34 @@ export default function Dashboard() {
       return await response.json();
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/metrics"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/parcels"] });
+      // Force refetch the queries
+      Promise.all([
+        queryClient.refetchQueries({ queryKey: ["/api/dashboard/metrics"], exact: true }),
+        queryClient.refetchQueries({ queryKey: ["/api/parcels"], exact: true })
+      ]);
+
+      // Reset the file input value
+      const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+      if (fileInput) {
+        fileInput.value = '';
+      }
+      
       setUploadFile(null);
+      
       toast({
         title: "Success",
         description: `Successfully processed ${data.parcels?.length || 0} parcels`,
       });
     },
-    onError: (error) => {
+    onError: (error: Error) => {
+      // Reset the file input value even on error
+      const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+      if (fileInput) {
+        fileInput.value = '';
+      }
+      
+      setUploadFile(null);
+      
       toast({
         title: "Upload Error",
         description: error.message,
@@ -70,6 +128,15 @@ export default function Dashboard() {
     refreshMutation.mutate();
   };
 
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+  const resetFileInput = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+    setUploadFile(null);
+  };
+
   const handleFileUpload = () => {
     if (uploadFile) {
       uploadMutation.mutate(uploadFile);
@@ -78,14 +145,17 @@ export default function Dashboard() {
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file && file.type === 'text/xml') {
-      setUploadFile(file);
-    } else {
-      toast({
-        title: "Invalid File",
-        description: "Please select a valid XML file",
-        variant: "destructive",
-      });
+    if (file) {
+      if (file.type === 'text/xml' || file.name.toLowerCase().endsWith('.xml')) {
+        setUploadFile(file);
+      } else {
+        resetFileInput();
+        toast({
+          title: "Invalid File",
+          description: "Please select a valid XML file",
+          variant: "destructive",
+        });
+      }
     }
   };
 
@@ -110,6 +180,7 @@ export default function Dashboard() {
             <div className="flex items-center space-x-3">
               <div className="flex items-center space-x-2">
                 <Input
+                  key={uploadMutation.isSuccess ? 'uploaded' : 'not-uploaded'}
                   type="file"
                   accept=".xml"
                   onChange={handleFileChange}
