@@ -10,7 +10,6 @@ const express_1 = __importDefault(require("express"));
 const fs_1 = __importDefault(require("fs"));
 const path_1 = __importDefault(require("path"));
 const vite_1 = require("vite");
-const vite_config_1 = __importDefault(require("../vite.config.cjs"));
 const nanoid_1 = require("nanoid");
 const viteLogger = (0, vite_1.createLogger)();
 function log(message, source = "express") {
@@ -23,6 +22,7 @@ function log(message, source = "express") {
     console.log(`${formattedTime} [${source}] ${message}`);
 }
 async function setupVite(app, server) {
+    const vite_config_1 = await import("../vite.config.js");
     const serverOptions = {
         middlewareMode: true,
         hmr: { server },
@@ -46,10 +46,10 @@ async function setupVite(app, server) {
     app.use("*", async (req, res, next) => {
         const url = req.originalUrl;
         try {
-            const clientTemplate = path_1.default.resolve(import.meta.dirname, "..", "client", "index.html");
+            const clientTemplate = path_1.default.resolve(__dirname, "..", "client", "index.html");
             // always reload the index.html file from disk incase it changes
             let template = await fs_1.default.promises.readFile(clientTemplate, "utf-8");
-            template = template.replace(`src="/src/main.tsx"`, `src="/src/main.tsx?v=${(0, nanoid_1.nanoid)()}"`);
+            template = template.replace(`src="/src/main.jsx"`, `src="/src/main.jsx?v=${(0, nanoid_1.nanoid)()}"`);
             const page = await vite.transformIndexHtml(url, template);
             res.status(200).set({ "Content-Type": "text/html" }).end(page);
         }
@@ -60,7 +60,7 @@ async function setupVite(app, server) {
     });
 }
 function serveStatic(app) {
-    const distPath = path_1.default.resolve(import.meta.dirname, "public");
+    const distPath = path_1.default.resolve(__dirname, "public");
     if (!fs_1.default.existsSync(distPath)) {
         throw new Error(`Could not find the build directory: ${distPath}, make sure to build the client first`);
     }

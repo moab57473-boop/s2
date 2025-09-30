@@ -2,7 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.storage = exports.MemStorage = void 0;
 const crypto_1 = require("crypto");
-const MongoStorage_1 = require("./storage/MongoStorage.cjs");
+const MongoStorage_1 = require("./storage/MongoStorage");
 class MemStorage {
     constructor() {
         this.parcels = new Map();

@@ -38,10 +38,10 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.registerRoutes = registerRoutes;
 const http_1 = require("http");
-const storage_1 = require("./storage.cjs");
-const xmlParser_1 = require("./services/xmlParser.cjs");
-const businessRules_1 = require("./services/businessRules.cjs");
-const schema_1 = require("../shared/schema.cjs");
+const storage_1 = require("./storage");
+const xmlParser_1 = require("./services/xmlParser");
+const businessRules_1 = require("./services/businessRules");
+const schema_1 = require("@shared/schema");
 const zod_1 = require("zod");
 const multer_1 = __importDefault(require("multer"));
 const upload = (0, multer_1.default)({
