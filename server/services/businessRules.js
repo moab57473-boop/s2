@@ -1,142 +1,38 @@
-import { storage } from '../storage.js';
+// server/services/businessRules.js
 
-class BusinessRulesEngine {
-  constructor() {
-    this.defaultRules = {
-      mail: { maxWeight: 1.0 },
-      regular: { maxWeight: 10.0 },
-      insurance: { minValue: 1000.0, enabled: true }
-    };
+
+export class BusinessRulesEngine {
+  constructor(storage) {
+    this.storage = storage;
   }
 
-  async getCurrentRules() {
-    const businessRules = await storage.getBusinessRules();
-    if (businessRules && businessRules.isActive) {
-      return businessRules.rules;
+  async getRules() {
+    if (!this.rules) {
+      this.rules = await this.storage.getBusinessRules();
     }
-    return this.defaultRules;
+    return this.rules;
   }
 
-  async updateRules(newRules) {
-    const existingRules = await storage.getBusinessRules();
-    if (existingRules) {
-      await storage.updateBusinessRules(existingRules.id, {
-        name: existingRules.name,
-        rules: newRules,
-        isActive: true
-      });
-    } else {
-      await storage.createBusinessRules({
-        name: "default",
-        rules: newRules,
-        isActive: true
-      });
-    }
-  }
+  async processParcel(parcel) {
+    const rules = await this.getRules();
+    let department = 'Mailroom';
 
-  async determineParcelRouting(parcelData) {
-    const rules = await this.getCurrentRules();
-    const { weight, value } = parcelData;
-    let department;
-    let requiresInsurance = false;
-    let status = "pending";
-
-    // Determine department based on weight
-    if (weight <= rules.mail.maxWeight) {
-      department = "mail";
-    } else if (weight <= rules.regular.maxWeight) {
-      department = "regular";
-    } else {
-      department = "heavy";
+    if (parcel.weight > rules.weightRules.HEAVY) {
+      department = 'Heavy';
+    } else if (parcel.weight < rules.weightRules.REGULAR) {
+      department = 'Regular';
     }
 
-    // Check if insurance review is required
-    if (rules.insurance.enabled && value > rules.insurance.minValue) {
-      requiresInsurance = true;
-      status = "insurance_review";
+    if (parcel.value > rules.valueRules.HIGH_VALUE) {
+      department = 'Insurance';
     }
+
+    const requiresInsurance = rules.insurance.enabled && parcel.value >= rules.insurance.minValue;
 
     return {
+      ...parcel,
       department,
       requiresInsurance,
-      status
     };
   }
-
-  async processParcel(parcelData) {
-    try {
-      // Convert weight and value to numbers
-      const weight = typeof parcelData.weight === 'string' ?
-        parseFloat(parcelData.weight) : parcelData.weight;
-      const value = typeof parcelData.value === 'string' ?
-        parseFloat(parcelData.value) : parcelData.value;
-
-      if (isNaN(weight)) {
-        throw new Error(`Invalid weight value for parcel ${parcelData.parcelId}`);
-      }
-      if (isNaN(value)) {
-        throw new Error(`Invalid value amount for parcel ${parcelData.parcelId}`);
-      }
-
-      const routing = await this.determineParcelRouting({
-        ...parcelData,
-        weight,
-        value
-      });
-
-      const insertParcel = {
-        parcelId: parcelData.parcelId,
-        weight: weight.toString(),
-        value: value.toString(),
-        department: routing.department,
-        status: routing.status,
-        requiresInsurance: routing.requiresInsurance,
-        insuranceApproved: false,
-        processingTime: new Date(),
-        errorMessage: null
-      };
-
-      return await storage.createParcel(insertParcel);
-    } catch (error) {
-      // Create parcel with error status
-      const insertParcel = {
-        parcelId: parcelData.parcelId,
-        weight: parcelData.weight.toString(),
-        value: parcelData.value.toString(),
-        department: "unassigned",
-        status: "error",
-        requiresInsurance: false,
-        insuranceApproved: false,
-        processingTime: new Date(),
-        errorMessage: error instanceof Error ? error.message : 'Unknown error'
-      };
-
-      return await storage.createParcel(insertParcel);
-    }
-  }
-
-  async approveInsurance(parcelId) {
-    const parcel = await storage.getParcelByParcelId(parcelId);
-    if (!parcel) return undefined;
-
-    if (parcel.requiresInsurance) {
-      return await storage.updateParcel(parcel.id, {
-        insuranceApproved: true,
-        status: "processing"
-      });
-    }
-    return parcel;
-  }
-
-  async completeProcessing(parcelId) {
-    const parcel = await storage.getParcelByParcelId(parcelId);
-    if (!parcel) return undefined;
-
-    return await storage.updateParcel(parcel.id, {
-      status: "completed"
-    });
-  }
 }
-
-export const businessRulesEngine = new BusinessRulesEngine();
-export { BusinessRulesEngine };

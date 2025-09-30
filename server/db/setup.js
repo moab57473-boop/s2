@@ -1,89 +1,34 @@
+// server/db/setup.js
 import { connectToDatabase } from './mongodb.js';
 
-export async function setupIndexes() {
-  const { db } = await connectToDatabase();
-  
-  // Setup indexes for parcels collection
-  await setupParcelIndexes(db);
-  
-  // Setup indexes for departments collection
-  await setupDepartmentIndexes(db);
-  
-  // Setup indexes for business rules collection
-  await setupBusinessRulesIndexes(db);
-}
+export async function setupDatabase() {
+  const db = await connectToDatabase();
+  const collections = await db.listCollections().toArray();
+  const collectionNames = collections.map(c => c.name);
 
-async function setupParcelIndexes(db) {
-  const parcels = db.collection('parcels');
-  
-  await Promise.all([
-    // Index for faster lookups by parcelId
-    parcels.createIndex({ parcelId: 1 }, { unique: true }),
-    // Index for status-based queries
-    parcels.createIndex({ status: 1 }),
-    // Index for department-based queries
-    parcels.createIndex({ department: 1 }),
-    // Compound index for department and status queries
-    parcels.createIndex({ department: 1, status: 1 }),
-    // Index for sorting by creation date
-    parcels.createIndex({ createdAt: -1 })
-  ]);
-}
+  if (!collectionNames.includes('departments')) {
+    const departmentsCollection = await db.createCollection('departments');
+    await departmentsCollection.insertMany([
+      { name: 'Mailroom', isCustom: false },
+      { name: 'Regular', isCustom: false },
+      { name: 'Heavy', isCustom: false },
+      { name: 'Insurance', isCustom: false },
+    ]);
+    console.log("Created and seeded 'departments' collection.");
+  }
 
-async function setupDepartmentIndexes(db) {
-  const departments = db.collection('departments');
+  if (!collectionNames.includes('business_rules')) {
+    const rulesCollection = await db.createCollection('business_rules');
+    await rulesCollection.insertOne({
+      weightRules: { REGULAR: 1, HEAVY: 10 },
+      valueRules: { HIGH_VALUE: 1000 },
+      insurance: { enabled: true, minValue: 1000 },
+    });
+    console.log("Created and seeded 'business_rules' collection.");
+  }
   
-  await Promise.all([
-    // Index for faster lookups by name
-    departments.createIndex({ name: 1 }, { unique: true })
-  ]);
-}
-
-async function setupBusinessRulesIndexes(db) {
-  const businessRules = db.collection('businessRules');
-  
-  await Promise.all([
-    // Index for finding active rules
-    businessRules.createIndex({ isActive: 1 })
-  ]);
-}
-
-export async function setupValidation() {
-  const { db } = await connectToDatabase();
-  
-  await Promise.all([
-    db.command({
-      collMod: 'parcels',
-      validator: {
-        $jsonSchema: {
-          bsonType: 'object',
-          required: ['parcelId', 'weight', 'department', 'status'],
-          properties: {
-            parcelId: { bsonType: 'string' },
-            weight: { bsonType: 'number', minimum: 0 },
-            department: { bsonType: 'string' },
-            status: {
-              bsonType: 'string',
-              enum: ['pending', 'completed', 'error', 'insurance_review']
-            }
-          }
-        }
-      },
-      validationLevel: 'moderate'
-    }),
-    db.command({
-      collMod: 'departments',
-      validator: {
-        $jsonSchema: {
-          bsonType: 'object',
-          required: ['name', 'isCustom'],
-          properties: {
-            name: { bsonType: 'string' },
-            description: { bsonType: ['string', 'null'] },
-            isCustom: { bsonType: 'bool' }
-          }
-        }
-      }
-    })
-  ]);
+  if (!collectionNames.includes('parcels')) {
+    await db.createCollection('parcels');
+    console.log("Created 'parcels' collection.");
+  }
 }
