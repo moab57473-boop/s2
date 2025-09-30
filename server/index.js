@@ -123,8 +123,8 @@ const setup_1 = require("./db/setup");
     try {
         const desiredPort = parseInt(process.env.PORT || '5000', 10);
         const availablePort = await findAvailablePort(desiredPort);
-        server.listen(availablePort, () => {
-            (0, vite_1.log)(`Server is running at http://localhost:${availablePort}`);
+        server.listen(availablePort, '0.0.0.0', () => {
+            (0, vite_1.log)(`Server is running at http://0.0.0.0:${availablePort}`);
             (0, vite_1.log)('Development mode enabled: Vite middleware is active');
         });
         // Handle server errors
@@ -147,7 +147,7 @@ const setup_1 = require("./db/setup");
             // Give some time for the previous port to be released
             setTimeout(() => {
                 (0, vite_1.log)(`Retrying with port ${newPort}...`);
-                server.listen(newPort);
+                server.listen(newPort, '0.0.0.0');
             }, 1000);
         }
         else {
