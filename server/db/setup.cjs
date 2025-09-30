@@ -2,7 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.setupIndexes = setupIndexes;
 exports.setupValidation = setupValidation;
-const mongodb_1 = require("./mongodb");
+const mongodb_1 = require("./mongodb.cjs");
 async function setupIndexes() {
     const { db } = await (0, mongodb_1.connectToDatabase)();
     // Setup indexes for parcels collection

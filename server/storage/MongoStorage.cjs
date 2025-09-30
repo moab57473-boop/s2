@@ -1,7 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.MongoStorage = void 0;
-const mongodb_1 = require("../db/mongodb");
+const mongodb_1 = require("../db/mongodb.cjs");
 const crypto_1 = require("crypto");
 class MongoStorage {
     async getParcel(id) {

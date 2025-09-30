@@ -1,7 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.businessRulesEngine = exports.BusinessRulesEngine = void 0;
-const storage_1 = require("../storage");
+const storage_1 = require("../storage.cjs");
 class BusinessRulesEngine {
     constructor() {
         this.defaultRules = {
