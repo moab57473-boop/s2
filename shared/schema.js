@@ -1,64 +1,68 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.DepartmentType = exports.ParcelStatus = exports.insertDepartmentSchema = exports.insertBusinessRulesSchema = exports.insertParcelSchema = exports.departmentSchema = exports.businessRulesSchema = exports.parcelSchema = void 0;
-const zod_1 = require("zod");
-;
-exports.parcelSchema = zod_1.z.object({
-    id: zod_1.z.string(),
-    parcelId: zod_1.z.string(),
-    weight: zod_1.z.number(),
-    value: zod_1.z.number(),
-    department: zod_1.z.string(),
-    status: zod_1.z.string().default("pending"),
-    requiresInsurance: zod_1.z.boolean().default(false),
-    insuranceApproved: zod_1.z.boolean().default(false),
-    processingTime: zod_1.z.date().default(() => new Date()),
-    errorMessage: zod_1.z.string().nullable(),
-    createdAt: zod_1.z.date().default(() => new Date()),
-    updatedAt: zod_1.z.date().default(() => new Date()),
+import { z } from 'zod';
+
+export const parcelSchema = z.object({
+  id: z.string(),
+  parcelId: z.string(),
+  weight: z.number(),
+  value: z.number(),
+  department: z.string(),
+  status: z.string().default("pending"),
+  requiresInsurance: z.boolean().default(false),
+  insuranceApproved: z.boolean().default(false),
+  processingTime: z.date().default(() => new Date()),
+  errorMessage: z.string().nullable(),
+  createdAt: z.date().default(() => new Date()),
+  updatedAt: z.date().default(() => new Date()),
 });
-exports.businessRulesSchema = zod_1.z.object({
-    id: zod_1.z.string(),
-    name: zod_1.z.string(),
-    rules: zod_1.z.unknown(),
-    isActive: zod_1.z.boolean().default(true),
-    createdAt: zod_1.z.date().default(() => new Date()),
-    updatedAt: zod_1.z.date().default(() => new Date()),
+
+export const businessRulesSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  rules: z.unknown(),
+  isActive: z.boolean().default(true),
+  createdAt: z.date().default(() => new Date()),
+  updatedAt: z.date().default(() => new Date()),
 });
-exports.departmentSchema = zod_1.z.object({
-    id: zod_1.z.string(),
-    name: zod_1.z.string(),
-    description: zod_1.z.string().nullable(),
-    color: zod_1.z.string(),
-    icon: zod_1.z.string(),
-    isCustom: zod_1.z.boolean().default(false),
-    createdAt: zod_1.z.date().default(() => new Date()),
+
+export const departmentSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  description: z.string().nullable(),
+  color: z.string(),
+  icon: z.string(),
+  isCustom: z.boolean().default(false),
+  createdAt: z.date().default(() => new Date()),
 });
-exports.insertParcelSchema = exports.parcelSchema.omit({
-    id: true,
-    createdAt: true,
-    updatedAt: true,
+
+export const insertParcelSchema = parcelSchema.omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
 });
-exports.insertBusinessRulesSchema = exports.businessRulesSchema.omit({
-    id: true,
-    createdAt: true,
-    updatedAt: true,
+
+export const insertBusinessRulesSchema = businessRulesSchema.omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
 });
-exports.insertDepartmentSchema = exports.departmentSchema.omit({
-    id: true,
-    createdAt: true,
+
+export const insertDepartmentSchema = departmentSchema.omit({
+  id: true,
+  createdAt: true,
 });
-exports.ParcelStatus = zod_1.z.enum([
-    "pending",
-    "processing",
-    "completed",
-    "insurance_review",
-    "error"
+
+export const ParcelStatus = z.enum([
+  "pending",
+  "processing",
+  "completed",
+  "insurance_review",
+  "error"
 ]);
-exports.DepartmentType = zod_1.z.enum([
-    "mail",
-    "regular",
-    "heavy",
-    "insurance",
-    "custom"
+
+export const DepartmentType = z.enum([
+  "mail",
+  "regular",
+  "heavy",
+  "insurance",
+  "custom"
 ]);

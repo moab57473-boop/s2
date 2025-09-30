@@ -1,13 +1,13 @@
 {
-  "name": "rest-express",
+  "name": "parcel-processing-app",
   "version": "1.0.0",
+  "description": "Parcel processing application with Express backend and React frontend",
   "type": "module",
   "license": "MIT",
   "scripts": {
     "dev": "cross-env NODE_ENV=development node -r tsconfig-paths/register server/index.js",
     "build": "vite build && esbuild server/index.js --platform=node --packages=external --bundle --format=esm --outdir=dist",
     "start": "cross-env NODE_ENV=production node dist/index.js",
-    "check": "tsc",
     "db:push": "drizzle-kit push",
     "db:init": "cross-env TS_NODE_PROJECT=server/scripts/tsconfig.json tsx server/scripts/initDb.ts",
     "db:test": "cross-env TS_NODE_PROJECT=server/scripts/tsconfig.json tsx server/scripts/testDb.ts"
@@ -58,7 +58,6 @@
     "esbuild": "^0.25.0",
     "tailwindcss": "^3.4.17",
     "tsx": "^4.20.5",
-    "typescript": "^5.9.2",
     "vite": "^5.4.20"
   },
   "optionalDependencies": {
